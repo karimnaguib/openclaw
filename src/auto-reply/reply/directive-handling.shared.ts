@@ -33,6 +33,17 @@ export const formatReasoningEvent = (level: ReasoningLevel) => {
   return "Reasoning OFF — hide <think>.";
 };
 
+export const formatAbilityEvent = (name: string, source: "user" | "auto" | "default") =>
+  source === "auto"
+    ? `Ability preset auto-activated: ${name}.`
+    : source === "default"
+      ? `Ability preset defaulted to ${name}.`
+      : `Ability preset set to ${name}.`;
+
+export const formatAbilityClearedEvent = () => "Ability preset cleared.";
+export const formatAbilityDegradedEvent = (name: string, detail?: string) =>
+  `Ability preset ${name} degraded${detail ? `: ${detail}` : "."}`;
+
 export function enqueueModeSwitchEvents(params: {
   enqueueSystemEvent: (text: string, meta: { sessionKey: string; contextKey: string }) => void;
   sessionEntry: { elevatedLevel?: string | null; reasoningLevel?: string | null };

@@ -4,6 +4,7 @@ import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.j
 import { loadModelCatalog } from "../agents/model-catalog.js";
 import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
 import { loadSessionStore } from "../config/sessions.js";
+import { runEmbeddedPiAgentMock } from "./reply.directive.directive-behavior.e2e-mocks.js";
 
 export { loadModelCatalog } from "../agents/model-catalog.js";
 export { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
@@ -47,7 +48,13 @@ export function makeEmbeddedTextResult(text = "done") {
 }
 
 export function mockEmbeddedTextResult(text = "done") {
-  vi.mocked(runEmbeddedPiAgent).mockResolvedValue(makeEmbeddedTextResult(text));
+  if (
+    typeof (runEmbeddedPiAgent as { mockResolvedValue?: unknown }).mockResolvedValue === "function"
+  ) {
+    vi.mocked(runEmbeddedPiAgent).mockResolvedValue(makeEmbeddedTextResult(text));
+    return;
+  }
+  runEmbeddedPiAgentMock.mockResolvedValue(makeEmbeddedTextResult(text));
 }
 
 export async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
@@ -134,7 +141,11 @@ export function assertElevatedOffStatusReply(text: string | undefined) {
 
 export function installDirectiveBehaviorE2EHooks() {
   beforeEach(() => {
-    vi.mocked(runEmbeddedPiAgent).mockReset();
+    if (typeof (runEmbeddedPiAgent as { mockReset?: unknown }).mockReset === "function") {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+    } else {
+      runEmbeddedPiAgentMock.mockReset();
+    }
     vi.mocked(loadModelCatalog).mockResolvedValue(DEFAULT_TEST_MODEL_CATALOG);
   });
 

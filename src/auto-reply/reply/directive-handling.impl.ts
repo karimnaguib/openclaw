@@ -3,6 +3,7 @@ import {
   resolveAgentDir,
   resolveSessionAgentId,
 } from "../../agents/agent-scope.js";
+import { resolveApiKeyForProvider } from "../../agents/model-auth.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
@@ -26,6 +27,31 @@ import {
   withOptions,
 } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel } from "./directives.js";
+
+const NATIVE_DEEP_RESEARCH_DEFAULT_MODEL = "o4-mini-deep-research";
+const NATIVE_DEEP_RESEARCH_O3_MODEL = "o3-deep-research";
+
+function isDeepResearchModel(provider?: string, model?: string): boolean {
+  const providerKey = provider?.trim().toLowerCase();
+  const modelKey = model?.trim().toLowerCase();
+  return (
+    providerKey === "openai" &&
+    (modelKey === NATIVE_DEEP_RESEARCH_DEFAULT_MODEL || modelKey === NATIVE_DEEP_RESEARCH_O3_MODEL)
+  );
+}
+
+function resolveCurrentDeepResearchMode(params: {
+  sessionEntry: SessionEntry;
+  provider: string;
+  model: string;
+}): "off" | "o4-mini" | "o3" {
+  const selectedProvider = params.sessionEntry.providerOverride?.trim() || params.provider;
+  const selectedModel = params.sessionEntry.modelOverride?.trim() || params.model;
+  if (!isDeepResearchModel(selectedProvider, selectedModel)) {
+    return "off";
+  }
+  return selectedModel === NATIVE_DEEP_RESEARCH_O3_MODEL ? "o3" : "o4-mini";
+}
 
 function resolveExecDefaults(params: {
   cfg: OpenClawConfig;
@@ -132,6 +158,62 @@ export async function handleDirectiveOnly(
   const resolvedProvider = modelSelection?.provider ?? provider;
   const resolvedModel = modelSelection?.model ?? model;
 
+  if (directives.hasAbilityDirective) {
+    return {
+      text: "Ability presets were removed. Use /effort, /deep-research, and /speed.",
+    };
+  }
+
+  if (directives.hasSpeedDirective && !directives.speedMode) {
+    if (!directives.rawSpeedMode) {
+      return {
+        text: withOptions(
+          "Speed mode: unavailable. Native Codex /fast is not exposed on the API surface this OpenClaw runtime uses.",
+          "status",
+        ),
+      };
+    }
+    return {
+      text: `Unrecognized speed mode "${directives.rawSpeedMode}". Valid modes: fast, off, status.`,
+    };
+  }
+
+  if (directives.hasSpeedDirective) {
+    return {
+      text: "Native speed mode is unavailable here. OpenClaw uses the OpenAI/Codex API path, which does not expose Codex app /fast.",
+    };
+  }
+
+  if (directives.hasDeepResearchDirective && directives.hasModelDirective) {
+    return {
+      text: "Use either /model or /deep-research in the same message, not both.",
+    };
+  }
+
+  const currentDeepResearchMode = resolveCurrentDeepResearchMode({
+    sessionEntry,
+    provider,
+    model,
+  });
+  if (directives.hasDeepResearchDirective && !directives.deepResearchMode) {
+    if (!directives.rawDeepResearchMode) {
+      return {
+        text: withOptions(
+          `Current deep research mode: ${currentDeepResearchMode}.`,
+          "on, off, o4-mini, o3, status",
+        ),
+      };
+    }
+    return {
+      text: `Unrecognized deep research mode "${directives.rawDeepResearchMode}". Valid modes: on, off, o4-mini, o3, status.`,
+    };
+  }
+  if (directives.hasDeepResearchDirective && directives.deepResearchMode === "status") {
+    return {
+      text: `Current deep research mode: ${currentDeepResearchMode}.`,
+    };
+  }
+
   if (directives.hasThinkDirective && !directives.thinkLevel) {
     // If no argument was provided, show the current level
     if (!directives.rawThinkLevel) {
@@ -201,6 +283,38 @@ export async function handleDirectiveOnly(
         failures: params.elevatedFailures,
         sessionKey: params.sessionKey,
       }),
+    };
+  }
+  if (directives.hasAbilityDirective && !directives.rawAbility) {
+    const current = sessionEntry.abilityPreset ?? "off";
+    const source = sessionEntry.abilityPreset
+      ? ` [${sessionEntry.abilityPresetSource ?? "user"}]`
+      : "";
+    const degraded =
+      sessionEntry.abilityPresetDegraded && sessionEntry.abilityPresetDegradedDetails
+        ? ` (degraded: ${sessionEntry.abilityPresetDegradedDetails})`
+        : sessionEntry.abilityPresetDegraded && sessionEntry.abilityPresetDegradedReason
+          ? ` (degraded: ${sessionEntry.abilityPresetDegradedReason})`
+          : "";
+    return {
+      text: withOptions(
+        `Current ability preset: ${current}${source}${degraded}.`,
+        "status, off, default, fast, deep, research, safe, ops",
+      ),
+    };
+  }
+  if (directives.hasAbilityDirective && directives.abilityPreset === "status") {
+    const current = sessionEntry.abilityPreset ?? "off";
+    const degraded =
+      sessionEntry.abilityPresetDegraded &&
+      (sessionEntry.abilityPresetDegradedDetails ?? sessionEntry.abilityPresetDegradedReason)
+        ? ` (${sessionEntry.abilityPresetDegradedDetails ?? sessionEntry.abilityPresetDegradedReason})`
+        : "";
+    const source = sessionEntry.abilityPreset
+      ? ` [${sessionEntry.abilityPresetSource ?? "user"}]`
+      : "";
+    return {
+      text: `Current ability preset: ${current}${source}${degraded}.`,
     };
   }
   if (directives.hasExecDirective) {
@@ -329,6 +443,57 @@ export async function handleDirectiveOnly(
       profileOverride,
     });
   }
+  let deepResearchSwitchLabel: string | undefined;
+  if (
+    directives.hasDeepResearchDirective &&
+    directives.deepResearchMode &&
+    directives.deepResearchMode !== "status"
+  ) {
+    if (directives.deepResearchMode === "off") {
+      if (currentDeepResearchMode !== "off") {
+        applyModelOverrideToSessionEntry({
+          entry: sessionEntry,
+          selection: {
+            provider: defaultProvider,
+            model: defaultModel,
+            isDefault: true,
+          },
+        });
+        deepResearchSwitchLabel = `${defaultProvider}/${defaultModel}`;
+      }
+    } else {
+      try {
+        await resolveApiKeyForProvider({
+          provider: "openai",
+          cfg: params.cfg,
+          agentDir,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof error === "string"
+              ? error
+              : "unknown error";
+        return {
+          text: `Deep research requires OpenAI API auth. ${message}`,
+        };
+      }
+      const researchModel =
+        directives.deepResearchMode === "o3"
+          ? NATIVE_DEEP_RESEARCH_O3_MODEL
+          : NATIVE_DEEP_RESEARCH_DEFAULT_MODEL;
+      applyModelOverrideToSessionEntry({
+        entry: sessionEntry,
+        selection: {
+          provider: "openai",
+          model: researchModel,
+          isDefault: false,
+        },
+      });
+      deepResearchSwitchLabel = `openai/${researchModel}`;
+    }
+  }
   if (directives.hasQueueDirective && directives.queueReset) {
     delete sessionEntry.queueMode;
     delete sessionEntry.queueDebounceMs;
@@ -364,6 +529,12 @@ export async function handleDirectiveOnly(
       });
     }
   }
+  if (deepResearchSwitchLabel && deepResearchSwitchLabel !== initialModelLabel) {
+    enqueueSystemEvent(formatModelSwitchEvent(deepResearchSwitchLabel), {
+      sessionKey,
+      contextKey: `model:${deepResearchSwitchLabel}`,
+    });
+  }
   enqueueModeSwitchEvents({
     enqueueSystemEvent,
     sessionEntry,
@@ -376,8 +547,8 @@ export async function handleDirectiveOnly(
   if (directives.hasThinkDirective && directives.thinkLevel) {
     parts.push(
       directives.thinkLevel === "off"
-        ? "Thinking disabled."
-        : `Thinking level set to ${directives.thinkLevel}.`,
+        ? "Effort disabled."
+        : `Effort set to ${directives.thinkLevel}.`,
     );
   }
   if (directives.hasVerboseDirective && directives.verboseLevel) {
@@ -430,7 +601,7 @@ export async function handleDirectiveOnly(
   }
   if (shouldDowngradeXHigh) {
     parts.push(
-      `Thinking level set to high (xhigh not supported for ${resolvedProvider}/${resolvedModel}).`,
+      `Effort set to high (xhigh not supported for ${resolvedProvider}/${resolvedModel}).`,
     );
   }
   if (modelSelection) {
@@ -443,6 +614,25 @@ export async function handleDirectiveOnly(
     );
     if (profileOverride) {
       parts.push(`Auth profile set to ${profileOverride}.`);
+    }
+  }
+  if (
+    directives.hasDeepResearchDirective &&
+    directives.deepResearchMode &&
+    directives.deepResearchMode !== "status"
+  ) {
+    if (directives.deepResearchMode === "off") {
+      parts.push(
+        currentDeepResearchMode === "off"
+          ? "Deep research already off."
+          : "Deep research disabled. Model reset to default.",
+      );
+    } else {
+      parts.push(
+        `Deep research set to ${
+          directives.deepResearchMode === "o3" ? "o3-deep-research" : "o4-mini-deep-research"
+        }.`,
+      );
     }
   }
   if (directives.hasQueueDirective && directives.queueMode) {

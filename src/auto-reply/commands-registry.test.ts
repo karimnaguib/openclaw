@@ -36,6 +36,9 @@ describe("commands registry", () => {
 
   it("exposes native specs", () => {
     const specs = listNativeCommandSpecs();
+    expect(specs.find((spec) => spec.name === "ability")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "speed")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "deep-research")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "help")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "stop")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "skill")).toBeTruthy();
@@ -200,6 +203,10 @@ describe("commands registry", () => {
 
   it("detects known text commands", () => {
     const detection = getCommandDetection();
+    expect(detection.exact.has("/ability")).toBe(true);
+    expect(detection.exact.has("/speed")).toBe(true);
+    expect(detection.exact.has("/deep-research")).toBe(true);
+    expect(detection.exact.has("/effort")).toBe(true);
     expect(detection.exact.has("/commands")).toBe(true);
     expect(detection.exact.has("/skill")).toBe(true);
     expect(detection.exact.has("/compact")).toBe(true);

@@ -3,6 +3,7 @@ import type { SessionEntry } from "../../config/sessions.js";
 import type { MsgContext } from "../templating.js";
 import type { ElevatedLevel } from "../thinking.js";
 import type { ReplyPayload } from "../types.js";
+import type { ResolvedAbilityPreset } from "./ability-presets.js";
 import { buildStatusReply } from "./commands.js";
 import {
   applyInlineDirectivesFastLane,
@@ -50,6 +51,7 @@ export async function applyInlineDirectiveOverrides(params: {
   allowTextCommands: boolean;
   command: Parameters<typeof buildStatusReply>[0]["command"];
   directives: InlineDirectives;
+  activeAbilityPreset?: ResolvedAbilityPreset;
   messageProviderKey: string;
   elevatedEnabled: boolean;
   elevatedAllowed: boolean;
@@ -205,6 +207,9 @@ export async function applyInlineDirectiveOverrides(params: {
     directives.hasReasoningDirective ||
     directives.hasElevatedDirective ||
     directives.hasExecDirective ||
+    directives.hasAbilityDirective ||
+    directives.hasSpeedDirective ||
+    directives.hasDeepResearchDirective ||
     directives.hasModelDirective ||
     directives.hasQueueDirective ||
     directives.hasStatusDirective;
@@ -264,6 +269,7 @@ export async function applyInlineDirectiveOverrides(params: {
     initialModelLabel,
     formatModelSwitchEvent,
     agentCfg,
+    activeAbilityPreset: params.activeAbilityPreset,
   });
   provider = persisted.provider;
   model = persisted.model;

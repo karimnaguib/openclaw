@@ -661,6 +661,43 @@ function createMoonshotThinkingWrapper(
   };
 }
 
+function shouldNormalizeCodexReasoningEffort(modelId: string): boolean {
+  const normalized = modelId.trim().toLowerCase();
+  return normalized === "gpt-5.4" || normalized.startsWith("gpt-5.4-");
+}
+
+function createCodexReasoningEffortWrapper(baseStreamFn: StreamFn | undefined): StreamFn {
+  const underlying = baseStreamFn ?? streamSimple;
+  return (model, context, options) => {
+    const originalOnPayload = options?.onPayload;
+    return underlying(model, context, {
+      ...options,
+      onPayload: (payload) => {
+        if (payload && typeof payload === "object") {
+          const payloadObj = payload as Record<string, unknown>;
+          if (payloadObj.reasoning_effort === "minimal") {
+            payloadObj.reasoning_effort = "low";
+          }
+          if (payloadObj.thinking === "minimal") {
+            payloadObj.thinking = "low";
+          }
+          if (
+            payloadObj.reasoning &&
+            typeof payloadObj.reasoning === "object" &&
+            !Array.isArray(payloadObj.reasoning)
+          ) {
+            const reasoningObj = payloadObj.reasoning as Record<string, unknown>;
+            if (reasoningObj.effort === "minimal") {
+              reasoningObj.effort = "low";
+            }
+          }
+        }
+        originalOnPayload?.(payload);
+      },
+    });
+  };
+}
+
 /**
  * Create a streamFn wrapper that adds OpenRouter app attribution headers
  * and injects reasoning.effort based on the configured thinking level.
@@ -892,6 +929,10 @@ export function applyExtraParamsToAgent(
   if (wrappedStreamFn) {
     log.debug(`applying extraParams to agent streamFn for ${provider}/${modelId}`);
     agent.streamFn = wrappedStreamFn;
+  }
+
+  if (provider === "openai-codex" && shouldNormalizeCodexReasoningEffort(modelId)) {
+    agent.streamFn = createCodexReasoningEffortWrapper(agent.streamFn);
   }
 
   const anthropicBetas = resolveAnthropicBetas(merged, provider, modelId);

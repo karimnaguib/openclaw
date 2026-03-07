@@ -2,11 +2,21 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { ExecAsk, ExecHost, ExecSecurity } from "../../infra/exec-approvals.js";
 import { extractModelDirective } from "../model.js";
 import type { MsgContext } from "../templating.js";
-import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./directives.js";
+import type {
+  DeepResearchMode,
+  ElevatedLevel,
+  ReasoningLevel,
+  SpeedMode,
+  ThinkLevel,
+  VerboseLevel,
+} from "./directives.js";
 import {
+  extractDeepResearchDirective,
+  extractAbilityDirective,
   extractElevatedDirective,
   extractExecDirective,
   extractReasoningDirective,
+  extractSpeedDirective,
   extractStatusDirective,
   extractThinkDirective,
   extractVerboseDirective,
@@ -44,6 +54,16 @@ export type InlineDirectives = {
   invalidExecAsk: boolean;
   invalidExecNode: boolean;
   hasStatusDirective: boolean;
+  hasAbilityDirective: boolean;
+  abilityPreset?: string;
+  rawAbility?: string;
+  abilitySource?: "user" | "auto" | "default";
+  hasSpeedDirective: boolean;
+  speedMode?: SpeedMode;
+  rawSpeedMode?: string;
+  hasDeepResearchDirective: boolean;
+  deepResearchMode?: DeepResearchMode;
+  rawDeepResearchMode?: string;
   hasModelDirective: boolean;
   rawModelDirective?: string;
   rawModelProfile?: string;
@@ -121,11 +141,29 @@ export function parseInlineDirectives(
     ? extractStatusDirective(execCleaned)
     : { cleaned: execCleaned, hasDirective: false };
   const {
+    cleaned: abilityCleaned,
+    abilityPreset,
+    rawAbility,
+    hasDirective: hasAbilityDirective,
+  } = extractAbilityDirective(statusCleaned);
+  const {
+    cleaned: speedCleaned,
+    speedMode,
+    rawMode: rawSpeedMode,
+    hasDirective: hasSpeedDirective,
+  } = extractSpeedDirective(abilityCleaned);
+  const {
+    cleaned: deepResearchCleaned,
+    deepResearchMode,
+    rawMode: rawDeepResearchMode,
+    hasDirective: hasDeepResearchDirective,
+  } = extractDeepResearchDirective(speedCleaned);
+  const {
     cleaned: modelCleaned,
     rawModel,
     rawProfile,
     hasDirective: hasModelDirective,
-  } = extractModelDirective(statusCleaned, {
+  } = extractModelDirective(deepResearchCleaned, {
     aliases: options?.modelAliases,
   });
   const {
@@ -172,6 +210,16 @@ export function parseInlineDirectives(
     invalidExecAsk,
     invalidExecNode,
     hasStatusDirective,
+    hasAbilityDirective,
+    abilityPreset,
+    rawAbility,
+    abilitySource: hasAbilityDirective ? "user" : undefined,
+    hasSpeedDirective,
+    speedMode,
+    rawSpeedMode,
+    hasDeepResearchDirective,
+    deepResearchMode,
+    rawDeepResearchMode,
     hasModelDirective,
     rawModelDirective: rawModel,
     rawModelProfile: rawProfile,
@@ -204,6 +252,9 @@ export function isDirectiveOnly(params: {
     !directives.hasReasoningDirective &&
     !directives.hasElevatedDirective &&
     !directives.hasExecDirective &&
+    !directives.hasAbilityDirective &&
+    !directives.hasSpeedDirective &&
+    !directives.hasDeepResearchDirective &&
     !directives.hasModelDirective &&
     !directives.hasQueueDirective
   ) {

@@ -31,6 +31,17 @@ describe("$schema key in config (#14998)", () => {
   });
 });
 
+describe("abilities config", () => {
+  it("accepts defaultPreset", () => {
+    const result = OpenClawSchema.safeParse({
+      abilities: {
+        defaultPreset: "fast",
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
 describe("ui.seamColor", () => {
   it("accepts hex colors", () => {
     const res = validateConfigObject({ ui: { seamColor: "#FF4500" } });

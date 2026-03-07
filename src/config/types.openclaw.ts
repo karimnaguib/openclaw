@@ -1,3 +1,4 @@
+import type { AbilitiesConfig } from "./types.abilities.js";
 import type { AcpConfig } from "./types.acp.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
@@ -114,6 +115,7 @@ export type OpenClawConfig = {
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;
+  abilities?: AbilitiesConfig;
 };
 
 export type ConfigValidationIssue = {

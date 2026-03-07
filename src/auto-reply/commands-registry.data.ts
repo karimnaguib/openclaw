@@ -173,6 +173,21 @@ function buildChatCommands(): ChatCommandDefinition[] {
       category: "status",
     }),
     defineChatCommand({
+      key: "ability",
+      nativeName: "ability",
+      description: "Deprecated. Use /effort, /deep-research, and /speed.",
+      textAlias: "/ability",
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "Deprecated",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+    }),
+    defineChatCommand({
       key: "allowlist",
       description: "List/add/remove allowlist entries.",
       textAlias: "/allowlist",
@@ -566,7 +581,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "think",
       nativeName: "think",
-      description: "Set thinking level.",
+      description: "Set reasoning effort.",
       textAlias: "/think",
       category: "options",
       args: [
@@ -575,6 +590,38 @@ function buildChatCommands(): ChatCommandDefinition[] {
           description: "off, minimal, low, medium, high, xhigh",
           type: "string",
           choices: ({ provider, model }) => listThinkingLevels(provider, model),
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "speed",
+      nativeName: "speed",
+      description: "Control native speed mode when supported by the provider.",
+      textAlias: "/speed",
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "fast, off, or status",
+          type: "string",
+          choices: ["fast", "off", "status"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "deep-research",
+      nativeName: "deep-research",
+      description: "Switch to a native OpenAI deep-research model.",
+      textAlias: "/deep-research",
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "on, off, o4-mini, o3, or status",
+          type: "string",
+          choices: ["on", "off", "o4-mini", "o3", "status"],
         },
       ],
       argsMenu: "auto",
@@ -738,7 +785,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
   ];
 
   registerAlias(commands, "whoami", "/id");
-  registerAlias(commands, "think", "/thinking", "/t");
+  registerAlias(commands, "think", "/thinking", "/t", "/effort", "/reasoning-effort");
   registerAlias(commands, "verbose", "/v");
   registerAlias(commands, "reasoning", "/reason");
   registerAlias(commands, "elevated", "/elev");

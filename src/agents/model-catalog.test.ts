@@ -114,6 +114,30 @@ describe("loadModelCatalog", () => {
     expect(spark?.reasoning).toBe(true);
   });
 
+  it("adds openai-codex/gpt-5.4 when base gpt-5.3-codex exists", async () => {
+    mockPiDiscoveryModels([
+      {
+        id: "gpt-5.3-codex",
+        provider: "openai-codex",
+        name: "GPT-5.3 Codex",
+        reasoning: true,
+        contextWindow: 200000,
+        input: ["text", "image"],
+      },
+    ]);
+
+    const result = await loadModelCatalog({ config: {} as OpenClawConfig });
+    expect(result).toContainEqual(
+      expect.objectContaining({
+        provider: "openai-codex",
+        id: "gpt-5.4",
+      }),
+    );
+    const gpt54 = result.find((entry) => entry.id === "gpt-5.4");
+    expect(gpt54?.name).toBe("gpt-5.4");
+    expect(gpt54?.reasoning).toBe(true);
+  });
+
   it("merges configured models for opted-in non-pi-native providers", async () => {
     mockSingleOpenAiCatalogModel();
 

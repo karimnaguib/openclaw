@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractDeepResearchDirective,
   extractElevatedDirective,
   extractExecDirective,
   extractQueueDirective,
   extractReasoningDirective,
   extractReplyToTag,
+  extractSpeedDirective,
   extractThinkDirective,
   extractVerboseDirective,
 } from "./reply.js";
-import { extractStatusDirective } from "./reply/directives.js";
+import { extractAbilityDirective, extractStatusDirective } from "./reply/directives.js";
 
 describe("directive parsing", () => {
   it("ignores verbose directive inside URL", () => {
@@ -88,6 +90,18 @@ describe("directive parsing", () => {
     const res = extractThinkDirective("/t");
     expect(res.hasDirective).toBe(true);
     expect(res.thinkLevel).toBeUndefined();
+  });
+
+  it("matches /effort alias", () => {
+    const res = extractThinkDirective("/effort high");
+    expect(res.hasDirective).toBe(true);
+    expect(res.thinkLevel).toBe("high");
+  });
+
+  it("treats none as off for effort", () => {
+    const res = extractThinkDirective("/reasoning-effort none");
+    expect(res.hasDirective).toBe(true);
+    expect(res.thinkLevel).toBe("off");
   });
 
   it("matches think with no argument and consumes colon", () => {
@@ -178,6 +192,27 @@ describe("directive parsing", () => {
     const res = extractStatusDirective("thats not /usage:/tmp/hello");
     expect(res.hasDirective).toBe(false);
     expect(res.cleaned).toBe("thats not /usage:/tmp/hello");
+  });
+
+  it("matches ability preset directives", () => {
+    const res = extractAbilityDirective("please /ability deep now");
+    expect(res.hasDirective).toBe(true);
+    expect(res.abilityPreset).toBe("deep");
+    expect(res.cleaned).toBe("please now");
+  });
+
+  it("matches speed directives", () => {
+    const res = extractSpeedDirective("please /speed fast now");
+    expect(res.hasDirective).toBe(true);
+    expect(res.speedMode).toBe("fast");
+    expect(res.cleaned).toBe("please now");
+  });
+
+  it("matches deep research directives", () => {
+    const res = extractDeepResearchDirective("please /deep-research o3 now");
+    expect(res.hasDirective).toBe(true);
+    expect(res.deepResearchMode).toBe("o3");
+    expect(res.cleaned).toBe("please now");
   });
 
   it("parses queue options and modes", () => {

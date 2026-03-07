@@ -5,6 +5,7 @@ import {
 } from "../../agents/agent-scope.js";
 import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
+import { resolveApiKeyForProvider } from "../../agents/model-auth.js";
 import {
   buildModelAliasIndex,
   type ModelAliasIndex,
@@ -17,10 +18,14 @@ import { type SessionEntry, updateSessionStore } from "../../config/sessions.js"
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { applyVerboseOverride } from "../../sessions/level-overrides.js";
 import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
+import type { ResolvedAbilityPreset } from "./ability-presets.js";
 import { resolveProfileOverride } from "./directive-handling.auth.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import { enqueueModeSwitchEvents } from "./directive-handling.shared.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
+
+const NATIVE_DEEP_RESEARCH_DEFAULT_MODEL = "o4-mini-deep-research";
+const NATIVE_DEEP_RESEARCH_O3_MODEL = "o3-deep-research";
 
 export async function persistInlineDirectives(params: {
   directives: InlineDirectives;
@@ -42,6 +47,7 @@ export async function persistInlineDirectives(params: {
   initialModelLabel: string;
   formatModelSwitchEvent: (label: string, alias?: string) => string;
   agentCfg: NonNullable<OpenClawConfig["agents"]>["defaults"] | undefined;
+  activeAbilityPreset?: ResolvedAbilityPreset;
 }): Promise<{ provider: string; model: string; contextTokens: number }> {
   const {
     directives,
@@ -133,6 +139,53 @@ export async function persistInlineDirectives(params: {
         updated = true;
       }
     }
+    let deepResearchSwitchLabel: string | undefined;
+    if (
+      directives.hasDeepResearchDirective &&
+      directives.deepResearchMode &&
+      directives.deepResearchMode !== "status"
+    ) {
+      if (directives.deepResearchMode === "off") {
+        const { updated: modelUpdated } = applyModelOverrideToSessionEntry({
+          entry: sessionEntry,
+          selection: {
+            provider: defaultProvider,
+            model: defaultModel,
+            isDefault: true,
+          },
+        });
+        if (modelUpdated) {
+          provider = defaultProvider;
+          model = defaultModel;
+          deepResearchSwitchLabel = `${defaultProvider}/${defaultModel}`;
+          updated = true;
+        }
+      } else {
+        await resolveApiKeyForProvider({
+          provider: "openai",
+          cfg,
+          agentDir,
+        });
+        const researchModel =
+          directives.deepResearchMode === "o3"
+            ? NATIVE_DEEP_RESEARCH_O3_MODEL
+            : NATIVE_DEEP_RESEARCH_DEFAULT_MODEL;
+        const { updated: modelUpdated } = applyModelOverrideToSessionEntry({
+          entry: sessionEntry,
+          selection: {
+            provider: "openai",
+            model: researchModel,
+            isDefault: false,
+          },
+        });
+        if (modelUpdated) {
+          provider = "openai";
+          model = researchModel;
+          deepResearchSwitchLabel = `openai/${researchModel}`;
+          updated = true;
+        }
+      }
+    }
 
     const modelDirective =
       directives.hasModelDirective && params.effectiveModelDirective
@@ -198,6 +251,12 @@ export async function persistInlineDirectives(params: {
       if (storePath) {
         await updateSessionStore(storePath, (store) => {
           store[sessionKey] = sessionEntry;
+        });
+      }
+      if (deepResearchSwitchLabel && deepResearchSwitchLabel !== initialModelLabel) {
+        enqueueSystemEvent(formatModelSwitchEvent(deepResearchSwitchLabel), {
+          sessionKey,
+          contextKey: `model:${deepResearchSwitchLabel}`,
         });
       }
       enqueueModeSwitchEvents({

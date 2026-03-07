@@ -84,10 +84,29 @@ describe("buildStatusMessage", () => {
     expect(normalized).toContain("Session: agent:main:main");
     expect(normalized).toContain("updated 10m ago");
     expect(normalized).toContain("Runtime: direct");
-    expect(normalized).toContain("Think: medium");
+    expect(normalized).toContain("Effort: medium");
     expect(normalized).not.toContain("verbose");
     expect(normalized).toContain("elevated");
     expect(normalized).toContain("Queue: collect");
+  });
+
+  it("does not surface deprecated ability preset details", () => {
+    const text = buildStatusMessage({
+      agent: {
+        model: "anthropic/pi:opus",
+      },
+      sessionEntry: {
+        sessionId: "abc",
+        updatedAt: 0,
+        abilityPreset: "research",
+        abilityPresetSource: "auto",
+        abilityPresetDegraded: true,
+        abilityPresetDegradedDetails: "web_search is unavailable",
+      },
+      sessionKey: "agent:main:main",
+      sessionScope: "per-sender",
+    });
+    expect(normalizeTestText(text)).not.toContain("Ability:");
   });
 
   it("falls back to sessionEntry levels when resolved levels are not passed", () => {
@@ -107,7 +126,7 @@ describe("buildStatusMessage", () => {
     });
     const normalized = normalizeTestText(text);
 
-    expect(normalized).toContain("Think: high");
+    expect(normalized).toContain("Effort: high");
     expect(normalized).toContain("verbose:full");
     expect(normalized).toContain("Reasoning: on");
   });
@@ -641,7 +660,9 @@ describe("buildCommandsMessage", () => {
     expect(text).toContain("Status");
     expect(text).toContain("/commands - List all slash commands.");
     expect(text).toContain("/skill - Run a skill by name.");
-    expect(text).toContain("/think (/thinking, /t) - Set thinking level.");
+    expect(text).toContain(
+      "/think (/thinking, /t, /effort, /reasoning-effort) - Set reasoning effort.",
+    );
     expect(text).toContain("/compact - Compact the session context.");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
@@ -671,6 +692,9 @@ describe("buildHelpMessage", () => {
     } as unknown as OpenClawConfig);
     expect(text).toContain("Skills");
     expect(text).toContain("/skill <name> [input]");
+    expect(text).toContain("/effort <level>");
+    expect(text).toContain("/deep-research <mode>");
+    expect(text).toContain("/speed <mode>");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
   });

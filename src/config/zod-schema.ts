@@ -28,6 +28,54 @@ const BrowserSnapshotDefaultsSchema = z
   .strict()
   .optional();
 
+const AbilityPresetSchema = z
+  .object({
+    think: z.enum(["off", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+    verbose: z.enum(["off", "on", "full"]).optional(),
+    reasoning: z.enum(["off", "on", "stream"]).optional(),
+    elevated: z.enum(["off", "on", "ask", "full"]).optional(),
+    model: z.string().optional(),
+    exec: z
+      .object({
+        host: z.enum(["sandbox", "gateway", "node"]).optional(),
+        security: z.enum(["deny", "allowlist", "full"]).optional(),
+        ask: z.enum(["off", "on-miss", "always"]).optional(),
+        node: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    queue: z
+      .object({
+        mode: z
+          .enum([
+            "steer",
+            "followup",
+            "collect",
+            "steer-backlog",
+            "steer+backlog",
+            "queue",
+            "interrupt",
+          ])
+          .optional(),
+        debounceMs: z.number().int().positive().optional(),
+        cap: z.number().int().positive().optional(),
+        dropPolicy: z.enum(["old", "new", "summarize"]).optional(),
+      })
+      .strict()
+      .optional(),
+    sendPolicy: SessionSendPolicySchema.optional(),
+    responseUsage: z.enum(["on", "off", "tokens", "full"]).optional(),
+    requires: z.object({ webSearch: z.boolean().optional() }).strict().optional(),
+    preferences: z
+      .object({
+        providers: z.array(z.string()).optional(),
+        tools: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
 const NodeHostSchema = z
   .object({
     browserProxy: z
@@ -511,6 +559,14 @@ export const OpenClawSchema = z
         mappings: z.array(HookMappingSchema).optional(),
         gmail: HooksGmailSchema,
         internal: InternalHooksSchema,
+      })
+      .strict()
+      .optional(),
+    abilities: z
+      .object({
+        autoRoute: z.boolean().optional(),
+        defaultPreset: z.string().optional(),
+        presets: z.record(z.string(), AbilityPresetSchema).optional(),
       })
       .strict()
       .optional(),

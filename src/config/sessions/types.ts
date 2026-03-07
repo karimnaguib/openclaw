@@ -103,6 +103,11 @@ export type SessionEntry = {
   execAsk?: string;
   execNode?: string;
   responseUsage?: "on" | "off" | "tokens" | "full";
+  abilityPreset?: string;
+  abilityPresetSource?: "user" | "auto" | "default";
+  abilityPresetDegraded?: boolean;
+  abilityPresetDegradedReason?: string;
+  abilityPresetDegradedDetails?: string;
   providerOverride?: string;
   modelOverride?: string;
   authProfileOverride?: string;

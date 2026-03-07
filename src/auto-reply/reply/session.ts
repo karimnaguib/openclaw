@@ -114,6 +114,11 @@ export async function initSessionState(params: {
   let persistedModelOverride: string | undefined;
   let persistedProviderOverride: string | undefined;
   let persistedLabel: string | undefined;
+  let persistedAbilityPreset: string | undefined;
+  let persistedAbilityPresetSource: "user" | "auto" | "default" | undefined;
+  let persistedAbilityPresetDegraded: boolean | undefined;
+  let persistedAbilityPresetDegradedReason: string | undefined;
+  let persistedAbilityPresetDegradedDetails: string | undefined;
 
   const normalizedChatType = normalizeChatType(ctx.ChatType);
   const isGroup =
@@ -224,6 +229,11 @@ export async function initSessionState(params: {
     persistedModelOverride = entry.modelOverride;
     persistedProviderOverride = entry.providerOverride;
     persistedLabel = entry.label;
+    persistedAbilityPreset = entry.abilityPreset;
+    persistedAbilityPresetSource = entry.abilityPresetSource;
+    persistedAbilityPresetDegraded = entry.abilityPresetDegraded;
+    persistedAbilityPresetDegradedReason = entry.abilityPresetDegradedReason;
+    persistedAbilityPresetDegradedDetails = entry.abilityPresetDegradedDetails;
   } else {
     sessionId = crypto.randomUUID();
     isNewSession = true;
@@ -240,6 +250,11 @@ export async function initSessionState(params: {
       persistedModelOverride = entry.modelOverride;
       persistedProviderOverride = entry.providerOverride;
       persistedLabel = entry.label;
+      persistedAbilityPreset = entry.abilityPreset;
+      persistedAbilityPresetSource = entry.abilityPresetSource;
+      persistedAbilityPresetDegraded = entry.abilityPresetDegraded;
+      persistedAbilityPresetDegradedReason = entry.abilityPresetDegradedReason;
+      persistedAbilityPresetDegradedDetails = entry.abilityPresetDegradedDetails;
     }
   }
 
@@ -288,6 +303,13 @@ export async function initSessionState(params: {
     reasoningLevel: persistedReasoning ?? baseEntry?.reasoningLevel,
     ttsAuto: persistedTtsAuto ?? baseEntry?.ttsAuto,
     responseUsage: baseEntry?.responseUsage,
+    abilityPreset: persistedAbilityPreset ?? baseEntry?.abilityPreset,
+    abilityPresetSource: persistedAbilityPresetSource ?? baseEntry?.abilityPresetSource,
+    abilityPresetDegraded: persistedAbilityPresetDegraded ?? baseEntry?.abilityPresetDegraded,
+    abilityPresetDegradedReason:
+      persistedAbilityPresetDegradedReason ?? baseEntry?.abilityPresetDegradedReason,
+    abilityPresetDegradedDetails:
+      persistedAbilityPresetDegradedDetails ?? baseEntry?.abilityPresetDegradedDetails,
     modelOverride: persistedModelOverride ?? baseEntry?.modelOverride,
     providerOverride: persistedProviderOverride ?? baseEntry?.providerOverride,
     label: persistedLabel ?? baseEntry?.label,

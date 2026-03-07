@@ -11,6 +11,9 @@ import {
   type VerboseLevel,
 } from "../thinking.js";
 
+export type SpeedMode = "fast" | "off" | "status";
+export type DeepResearchMode = "on" | "off" | "status" | "o3" | "o4-mini";
+
 type ExtractedLevel<T> = {
   cleaned: string;
   level?: T;
@@ -40,7 +43,7 @@ const matchLevelDirective = (
     }
   }
   const argStart = i;
-  while (i < body.length && /[A-Za-z-]/.test(body[i])) {
+  while (i < body.length && /[A-Za-z0-9_-]/.test(body[i])) {
     i += 1;
   }
   const rawLevel = i > argStart ? body.slice(argStart, i) : undefined;
@@ -97,7 +100,11 @@ export function extractThinkDirective(body?: string): {
   if (!body) {
     return { cleaned: "", hasDirective: false };
   }
-  const extracted = extractLevelDirective(body, ["thinking", "think", "t"], normalizeThinkLevel);
+  const extracted = extractLevelDirective(
+    body,
+    ["thinking", "think", "t", "effort", "reasoning-effort"],
+    normalizeThinkLevel,
+  );
   return {
     cleaned: extracted.cleaned,
     thinkLevel: extracted.level,
@@ -186,6 +193,125 @@ export function extractStatusDirective(body?: string): {
     return { cleaned: "", hasDirective: false };
   }
   return extractSimpleDirective(body, ["status"]);
+}
+
+function normalizeSpeedMode(raw?: string): SpeedMode | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const key = raw.trim().toLowerCase();
+  if (key === "status") {
+    return "status";
+  }
+  if (["fast", "on", "enable", "enabled"].includes(key)) {
+    return "fast";
+  }
+  if (["off", "disable", "disabled"].includes(key)) {
+    return "off";
+  }
+  return undefined;
+}
+
+export function extractSpeedDirective(body?: string): {
+  cleaned: string;
+  speedMode?: SpeedMode;
+  rawMode?: string;
+  hasDirective: boolean;
+} {
+  if (!body) {
+    return { cleaned: "", hasDirective: false };
+  }
+  const extracted = extractLevelDirective(body, ["speed"], normalizeSpeedMode);
+  return {
+    cleaned: extracted.cleaned,
+    speedMode: extracted.level,
+    rawMode: extracted.rawLevel,
+    hasDirective: extracted.hasDirective,
+  };
+}
+
+function normalizeDeepResearchMode(raw?: string): DeepResearchMode | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  const key = raw.trim().toLowerCase();
+  if (key === "status") {
+    return "status";
+  }
+  if (["on", "enable", "enabled", "default", "o4", "o4-mini"].includes(key)) {
+    return key === "o4-mini" ? "o4-mini" : key === "o4" ? "o4-mini" : "on";
+  }
+  if (["off", "disable", "disabled"].includes(key)) {
+    return "off";
+  }
+  if (["o3", "o3-deep-research"].includes(key)) {
+    return "o3";
+  }
+  return undefined;
+}
+
+export function extractDeepResearchDirective(body?: string): {
+  cleaned: string;
+  deepResearchMode?: DeepResearchMode;
+  rawMode?: string;
+  hasDirective: boolean;
+} {
+  if (!body) {
+    return { cleaned: "", hasDirective: false };
+  }
+  const extracted = extractLevelDirective(
+    body,
+    ["deep-research", "deepresearch"],
+    normalizeDeepResearchMode,
+  );
+  return {
+    cleaned: extracted.cleaned,
+    deepResearchMode: extracted.level,
+    rawMode: extracted.rawLevel,
+    hasDirective: extracted.hasDirective,
+  };
+}
+
+export function extractAbilityDirective(body?: string): {
+  cleaned: string;
+  abilityPreset?: string;
+  rawAbility?: string;
+  hasDirective: boolean;
+} {
+  if (!body) {
+    return { cleaned: "", hasDirective: false };
+  }
+  const match = body.match(/(?:^|\s)\/ability(?=$|\s|:)/i);
+  if (!match || match.index === undefined) {
+    return { cleaned: body.trim(), hasDirective: false };
+  }
+  let i = match.index + match[0].length;
+  while (i < body.length && /\s/.test(body[i])) {
+    i += 1;
+  }
+  if (body[i] === ":") {
+    i += 1;
+    while (i < body.length && /\s/.test(body[i])) {
+      i += 1;
+    }
+  }
+  const start = i;
+  while (i < body.length && /[A-Za-z_-]/.test(body[i])) {
+    i += 1;
+  }
+  const rawAbility = i > start ? body.slice(start, i) : undefined;
+  const cleaned = body
+    .slice(0, match.index)
+    .concat(" ")
+    .concat(body.slice(i))
+    .replace(/\s+/g, " ")
+    .trim();
+  return {
+    cleaned,
+    abilityPreset: rawAbility?.trim().toLowerCase(),
+    rawAbility,
+    hasDirective: true,
+  };
 }
 
 export type { ElevatedLevel, NoticeLevel, ReasoningLevel, ThinkLevel, VerboseLevel };

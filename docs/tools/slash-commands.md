@@ -14,7 +14,7 @@ The host-only bash chat command uses `! <cmd>` (with `/bash <cmd>` as an alias).
 There are two related systems:
 
 - **Commands**: standalone `/...` messages.
-- **Directives**: `/think`, `/verbose`, `/reasoning`, `/elevated`, `/exec`, `/model`, `/queue`.
+- **Directives**: `/think`, `/effort`, `/verbose`, `/reasoning`, `/elevated`, `/exec`, `/deep-research`, `/speed`, `/model`, `/queue`.
   - Directives are stripped from the message before the model sees it.
   - In normal chat messages (not directive-only), they are treated as “inline hints” and do **not** persist session settings.
   - In directive-only messages (the message contains only directives), they persist to the session and reply with an acknowledgement.
@@ -101,9 +101,12 @@ Text + native (when enabled):
 - `/activation mention|always` (groups only)
 - `/send on|off|inherit` (owner-only)
 - `/reset` or `/new [model]` (optional model hint; remainder is passed through)
-- `/think <off|minimal|low|medium|high|xhigh>` (dynamic choices by model/provider; aliases: `/thinking`, `/t`)
+- `/think <off|minimal|low|medium|high|xhigh>` (reasoning effort; aliases: `/thinking`, `/t`, `/effort`, `/reasoning-effort`)
 - `/verbose on|full|off` (alias: `/v`)
 - `/reasoning on|off|stream` (alias: `/reason`; when on, sends a separate message prefixed `Reasoning:`; `stream` = Telegram draft only)
+- `/deep-research <on|off|o4-mini|o3|status>` (native OpenAI deep-research models; requires OpenAI API auth)
+- `/speed <fast|off|status>` (native speed control when the provider exposes it; unsupported on the OpenAI/Codex API path used by this runtime)
+- `/ability ...` (deprecated; native-only replacements are `/effort`, `/deep-research`, and `/speed`)
 - `/elevated on|off|ask|full` (alias: `/elev`; `full` skips exec approvals)
 - `/exec host=<sandbox|gateway|node> security=<deny|allowlist|full> ask=<off|on-miss|always> node=<id>` (send `/exec` to show current)
 - `/model <name>` (alias: `/models`; or `/<alias>` from `agents.defaults.models.*.alias`)

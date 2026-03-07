@@ -555,7 +555,7 @@ export function buildStatusMessage(args: StatusArgs): string {
       : null;
   const optionParts = [
     `Runtime: ${runtime.label}`,
-    `Think: ${thinkLevel}`,
+    `Effort: ${thinkLevel}`,
     verboseLabel,
     reasoningLevel !== "off" ? `Reasoning: ${reasoningLevel}` : null,
     elevatedLabel,
@@ -566,7 +566,6 @@ export function buildStatusMessage(args: StatusArgs): string {
     `🪢 Queue: ${queueMode}${queueDetails}`,
   ];
   const activationLine = activationParts.filter(Boolean).join(" · ");
-
   const selectedAuthMode =
     normalizeAuthMode(args.modelAuth) ?? resolveModelAuthMode(selectedProvider, args.config);
   const selectedAuthLabelValue =
@@ -728,7 +727,13 @@ export function buildHelpMessage(cfg?: OpenClawConfig): string {
   lines.push("  /new  |  /reset  |  /compact [instructions]  |  /stop");
   lines.push("");
 
-  const optionParts = ["/think <level>", "/model <id>", "/verbose on|off"];
+  const optionParts = [
+    "/effort <level>",
+    "/model <id>",
+    "/deep-research <mode>",
+    "/speed <mode>",
+    "/verbose on|off",
+  ];
   if (isCommandFlagEnabled(cfg, "config")) {
     optionParts.push("/config");
   }

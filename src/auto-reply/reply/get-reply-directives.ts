@@ -61,6 +61,7 @@ export type ReplyDirectiveContinuation = {
     cap?: number;
     dropPolicy?: InlineDirectives["dropPolicy"];
   };
+  activeAbilityPreset?: undefined;
 };
 
 function resolveExecOverrides(params: {
@@ -231,6 +232,7 @@ export async function resolveReplyDirectives(params: {
     parsedDirectives.hasReasoningDirective ||
     parsedDirectives.hasElevatedDirective ||
     parsedDirectives.hasExecDirective ||
+    parsedDirectives.hasAbilityDirective ||
     parsedDirectives.hasModelDirective ||
     parsedDirectives.hasQueueDirective;
   if (hasInlineDirective) {
@@ -262,6 +264,16 @@ export async function resolveReplyDirectives(params: {
         hasVerboseDirective: false,
         hasReasoningDirective: false,
         hasStatusDirective: false,
+        hasAbilityDirective: false,
+        abilityPreset: undefined,
+        rawAbility: undefined,
+        abilitySource: undefined,
+        hasSpeedDirective: false,
+        speedMode: undefined,
+        rawSpeedMode: undefined,
+        hasDeepResearchDirective: false,
+        deepResearchMode: undefined,
+        rawDeepResearchMode: undefined,
         hasModelDirective: false,
         hasQueueDirective: false,
         queueReset: false,
@@ -338,8 +350,11 @@ export async function resolveReplyDirectives(params: {
     groupResolution,
   });
   const defaultActivation = defaultGroupActivation(requireMention);
+  const activeAbilityPreset = undefined;
   const resolvedThinkLevel =
-    directives.thinkLevel ?? (sessionEntry?.thinkingLevel as ThinkLevel | undefined);
+    directives.thinkLevel ??
+    (sessionEntry?.thinkingLevel as ThinkLevel | undefined) ??
+    (agentCfg?.thinkingDefault as ThinkLevel | undefined);
 
   const resolvedVerboseLevel =
     directives.verboseLevel ??
@@ -436,6 +451,7 @@ export async function resolveReplyDirectives(params: {
     command,
     directives,
     messageProviderKey,
+    activeAbilityPreset,
     elevatedEnabled,
     elevatedAllowed,
     elevatedFailures,
@@ -493,6 +509,7 @@ export async function resolveReplyDirectives(params: {
       directiveAck,
       perMessageQueueMode,
       perMessageQueueOptions,
+      activeAbilityPreset,
     },
   };
 }

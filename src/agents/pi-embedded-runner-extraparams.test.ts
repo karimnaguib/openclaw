@@ -662,6 +662,36 @@ describe("applyExtraParamsToAgent", () => {
     expect(calls[0]?.transport).toBe("auto");
   });
 
+  it("normalizes Codex gpt-5.4 minimal reasoning payloads to low", () => {
+    const payloads: Record<string, unknown>[] = [];
+    const baseStreamFn: StreamFn = (_model, _context, options) => {
+      const payload: Record<string, unknown> = {
+        reasoning_effort: "minimal",
+        thinking: "minimal",
+        reasoning: { effort: "minimal" },
+      };
+      options?.onPayload?.(payload);
+      payloads.push(payload);
+      return {} as ReturnType<StreamFn>;
+    };
+    const agent = { streamFn: baseStreamFn };
+
+    applyExtraParamsToAgent(agent, undefined, "openai-codex", "gpt-5.4", undefined, "minimal");
+
+    const model = {
+      api: "openai-codex-responses",
+      provider: "openai-codex",
+      id: "gpt-5.4",
+    } as Model<"openai-codex-responses">;
+    const context: Context = { messages: [] };
+    void agent.streamFn?.(model, context, {});
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.reasoning_effort).toBe("low");
+    expect(payloads[0]?.thinking).toBe("low");
+    expect(payloads[0]?.reasoning).toEqual({ effort: "low" });
+  });
+
   it("defaults OpenAI transport to auto (WebSocket-first)", () => {
     const { calls, agent } = createOptionsCaptureAgent();
 

@@ -21,6 +21,11 @@ export type ModelAliasIndex = {
   byKey: Map<string, string[]>;
 };
 
+const NATIVE_SESSION_MODELS: ReadonlyArray<{ provider: string; model: string }> = [
+  { provider: "openai", model: "o4-mini-deep-research" },
+  { provider: "openai", model: "o3-deep-research" },
+];
+
 const ANTHROPIC_MODEL_ALIASES: Record<string, string> = {
   "opus-4.6": "claude-opus-4-6",
   "opus-4.5": "claude-opus-4-5",
@@ -439,6 +444,18 @@ export function buildAllowedModelSet(params: {
 
   if (defaultKey) {
     allowedKeys.add(defaultKey);
+  }
+
+  for (const entry of NATIVE_SESSION_MODELS) {
+    const key = modelKey(entry.provider, entry.model);
+    allowedKeys.add(key);
+    if (!catalogKeys.has(key) && !syntheticCatalogEntries.has(key)) {
+      syntheticCatalogEntries.set(key, {
+        id: entry.model,
+        name: entry.model,
+        provider: entry.provider,
+      });
+    }
   }
 
   const allowedCatalog = [

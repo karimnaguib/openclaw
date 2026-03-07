@@ -296,9 +296,15 @@ describe("model-selection", () => {
 
       expect(result.allowAny).toBe(false);
       expect(result.allowedKeys.has("anthropic/claude-sonnet-4-6")).toBe(true);
-      expect(result.allowedCatalog).toEqual([
-        { provider: "anthropic", id: "claude-sonnet-4-6", name: "claude-sonnet-4-6" },
-      ]);
+      expect(result.allowedKeys.has("openai/o4-mini-deep-research")).toBe(true);
+      expect(result.allowedKeys.has("openai/o3-deep-research")).toBe(true);
+      expect(result.allowedCatalog).toEqual(
+        expect.arrayContaining([
+          { provider: "anthropic", id: "claude-sonnet-4-6", name: "claude-sonnet-4-6" },
+          { provider: "openai", id: "o4-mini-deep-research", name: "o4-mini-deep-research" },
+          { provider: "openai", id: "o3-deep-research", name: "o3-deep-research" },
+        ]),
+      );
     });
   });
 
