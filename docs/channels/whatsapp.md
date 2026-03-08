@@ -315,7 +315,7 @@ WhatsApp supports immediate ack reactions on inbound receipt via `channels.whats
   channels: {
     whatsapp: {
       ackReaction: {
-        emoji: "👀",
+        emoji: "👍, ❤️", // single emoji OR comma/pipe-separated candidates
         direct: true,
         group: "mentions", // always | mentions | never
       },
@@ -329,6 +329,7 @@ Behavior notes:
 - sent immediately after inbound is accepted (pre-reply)
 - failures are logged but do not block normal reply delivery
 - group mode `mentions` reacts on mention-triggered turns; group activation `always` acts as bypass for this check
+- when multiple emojis are configured (`"👍, ❤️"`), WhatsApp picks one per message (gratitude-like text prefers heart)
 - WhatsApp uses `channels.whatsapp.ackReaction` (legacy `messages.ackReaction` is not used here)
 
 ## Multi-account and credentials

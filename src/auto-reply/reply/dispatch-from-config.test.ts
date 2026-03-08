@@ -189,6 +189,34 @@ describe("dispatchReplyFromConfig", () => {
     expect(dispatcher.sendFinalReply).toHaveBeenCalledTimes(1);
   });
 
+  it("collapses multi-reply payloads for WhatsApp group sessions", async () => {
+    mocks.tryFastAbortFromMessage.mockResolvedValue({
+      handled: false,
+      aborted: false,
+    });
+    const cfg = {} as OpenClawConfig;
+    const dispatcher = createDispatcher();
+    const ctx = buildTestCtx({
+      Provider: "whatsapp",
+      Surface: "whatsapp",
+      ChatType: "group",
+    });
+
+    const replyResolver = async () =>
+      [
+        { text: "Let me check that." },
+        { text: "One more thing." },
+        { text: "Final answer." },
+      ] satisfies ReplyPayload[];
+
+    await dispatchReplyFromConfig({ ctx, cfg, dispatcher, replyResolver });
+
+    expect(dispatcher.sendFinalReply).toHaveBeenCalledTimes(1);
+    expect(dispatcher.sendFinalReply).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Final answer." }),
+    );
+  });
+
   it("sends tool results via dispatcher in DM sessions", async () => {
     mocks.tryFastAbortFromMessage.mockResolvedValue({
       handled: false,

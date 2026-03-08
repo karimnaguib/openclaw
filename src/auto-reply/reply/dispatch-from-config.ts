@@ -348,7 +348,23 @@ export async function dispatchReplyFromConfig(params: {
       cfg,
     );
 
-    const replies = replyResult ? (Array.isArray(replyResult) ? replyResult : [replyResult]) : [];
+    let replies = replyResult ? (Array.isArray(replyResult) ? replyResult : [replyResult]) : [];
+    const shouldCollapseGroupWhatsappReplies = channel === "whatsapp" && ctx.ChatType === "group";
+    if (shouldCollapseGroupWhatsappReplies && replies.length > 1) {
+      const hasMediaPayload = replies.some(
+        (payload) => Boolean(payload.mediaUrl) || (payload.mediaUrls?.length ?? 0) > 0,
+      );
+      if (!hasMediaPayload) {
+        const lastTextReply =
+          [...replies]
+            .toReversed()
+            .find(
+              (payload) => typeof payload.text === "string" && payload.text.trim().length > 0,
+            ) ?? replies[replies.length - 1];
+        replies = [lastTextReply];
+        logVerbose("dispatch-from-config: collapsed multi-reply payloads for WhatsApp group send");
+      }
+    }
 
     let queuedFinal = false;
     let routedFinalCount = 0;
